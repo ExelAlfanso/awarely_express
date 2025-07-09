@@ -69,6 +69,7 @@ exports.login = async (req, res) => {
       path: "/",
     });
     res.json({
+      accessToken: accessToken,
       user: {
         id: user.id,
         email: user.email,
@@ -80,23 +81,23 @@ exports.login = async (req, res) => {
   }
 };
 
-exports.profile = async (req, res) => {
+exports.me = async (req, res) => {
   try {
     const user = await pool.query(
       "SELECT id, email, username FROM users WHERE id = $1",
       [req.user.id]
     );
-    res.json(user.rows[0]);
+    console.log(user.rows[0]);
+    return res.json({
+      user: {
+        id: user.rows[0].id,
+        username: user.rows[0].username,
+        email: user.rows[0].email,
+      },
+    });
   } catch (err) {
     res.status(500).json({ error: "Could not fetch profile" });
   }
-};
-
-exports.me = async (req, res) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Unauthorized" });
-  }
-  res.json({ user: req.user });
 };
 
 exports.logout = (req, res) => {
@@ -110,7 +111,7 @@ exports.logout = (req, res) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "Strict",
-    path: "/api/auth/refresh",
+    path: "/",
   });
   res.status(200).json({ message: "Logged out successfully" });
 };

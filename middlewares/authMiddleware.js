@@ -2,7 +2,6 @@ const jwt = require("jsonwebtoken");
 require("dotenv").config();
 
 const authMiddleware = (req, res, next) => {
-  console.log("Cookies:", req.cookies); // untuk debugging
   const token = req.cookies.accessToken;
 
   if (!token) {

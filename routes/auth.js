@@ -12,7 +12,6 @@ const signUpMiddleware = require("../middlewares/signUpMiddleware");
 
 router.post("/register", signUpMiddleware, register);
 router.post("/login", login);
-router.get("/profile", authMiddleware, profile);
 router.get("/me", authMiddleware, me);
 router.get("/logout", logout);
 
