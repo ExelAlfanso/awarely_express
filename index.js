@@ -15,8 +15,10 @@ app.use(
 );
 
 const authRoutes = require("./routes/auth");
-
+const formRoutes = require("./routes/forms");
 app.use("/api/auth", authRoutes);
+app.use("/api/forms", formRoutes);
+
 
 app.get("/", async (req, res) => {
   try {
