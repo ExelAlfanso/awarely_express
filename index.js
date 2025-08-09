@@ -14,7 +14,7 @@ app.use(cookieParser());
 
 const allowedOrigins = [
   "http://localhost:5173",
-  // "https://chatify-roan.vercel.app",
+  "https://awarely-five.vercel.app",
 ];
 
 app.use(
