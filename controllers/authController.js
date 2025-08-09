@@ -1,117 +1,99 @@
-const pool = require("../db");
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const { validationResult } = require("express-validator");
-require("dotenv").config();
+import bcrypt from "bcryptjs";
+import jwt from "jsonwebtoken";
+import { serialize } from "cookie";
+import User from "../models/User.js";
 
-const createAccessToken = (user) =>
-  jwt.sign({ id: user.id, email: user.email }, process.env.JWT_SECRET, {
-    expiresIn: "15m",
-  });
+const JWT_SECRET = process.env.JWT_SECRET;
 
-const createRefreshToken = (user) =>
-  jwt.sign({ id: user.id }, process.env.JWT_REFRESH_SECRET, {
-    expiresIn: "30d",
-  });
-
-exports.register = async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({
-      errors: errors.array(),
-    });
-  }
-  const { username, email, confirmEmail, password } = req.body;
-  if (email !== confirmEmail)
-    return res.status(400).json({ error: "Emails do not matchh" });
-  try {
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const result = await pool.query(
-      "INSERT INTO users (username, email, password) VALUES ($1, $2, $3) RETURNING *",
-      [username, email, hashedPassword]
-    );
-
-    res.status(201).json({ message: "User registered", user: result.rows[0] });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Registration failed" });
-  }
-};
-
-exports.login = async (req, res) => {
+export const login = async (req, res) => {
   const { email, password } = req.body;
 
   try {
-    const result = await pool.query("SELECT * FROM users WHERE email = $1", [
-      email,
-    ]);
-    if (result.rows.length === 0) {
-      return res.status(404).json({ error: "User not found" });
-    }
-    const user = result.rows[0];
-    const valid = await bcrypt.compare(password, user.password);
-    if (!valid) return res.status(401).json({ error: "Invalid password" });
-    const accessToken = createAccessToken(user);
-    const refreshToken = createRefreshToken(user);
-    res.cookie("refreshToken", refreshToken, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      path: "/api/auth/refresh",
-      maxAge: 30 * 24 * 60 * 60 * 1000,
+    const user = await User.findOne({ email });
+    if (!user) return res.status(401).json({ message: "Invalid credentials" });
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch)
+      return res.status(401).json({ message: "Invalid credentials" });
+
+    const token = jwt.sign({ userId: user._id }, JWT_SECRET, {
+      expiresIn: "7d",
     });
-    res.cookie("accessToken", accessToken, {
+
+    const cookieStr = serialize("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "Strict",
-      maxAge: 15 * 60 * 1000,
+      secure: true,
+      sameSite: "none",
+      maxAge: 60 * 60 * 24 * 7,
       path: "/",
     });
-    res.json({
-      accessToken: accessToken,
-      user: {
-        id: user.id,
-        email: user.email,
-        username: user.username,
-      },
-    });
+
+    res.setHeader("Set-Cookie", cookieStr);
+    return res.status(200).json({ message: "Login successful!" });
   } catch (err) {
-    res.status(500).json({ error: "Login failed" });
+    console.error("Login error:", err);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 };
 
-exports.me = async (req, res) => {
+export const register = async (req, res) => {
+  const { username, email, password } = req.body;
+
   try {
-    const user = await pool.query(
-      "SELECT id, email, username FROM users WHERE id = $1",
-      [req.user.id]
-    );
-    console.log(user.rows[0]);
-    return res.json({
-      user: {
-        id: user.rows[0].id,
-        username: user.rows[0].username,
-        email: user.rows[0].email,
-      },
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res
+        .status(400)
+        .json({ message: "User with email already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 12);
+
+    const newUser = await User.create({
+      username,
+      email,
+      password: hashedPassword,
     });
+
+    const token = jwt.sign({ userId: newUser._id }, JWT_SECRET, {
+      expiresIn: "7d",
+    });
+
+    const cookieStr = serialize("token", token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: "none",
+      maxAge: 60 * 60 * 24 * 7,
+      path: "/",
+    });
+
+    res.setHeader("Set-Cookie", cookieStr);
+    return res.status(200).json({ message: "User registered successfully" });
   } catch (err) {
-    res.status(500).json({ error: "Could not fetch profile" });
+    console.error("Registration error:", err);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 };
 
-exports.logout = (req, res) => {
-  res.clearCookie("refreshToken", {
+export const me = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId).select("username");
+    if (!user) return res.status(404).json({ message: "User not found." });
+    return res.status(200).json({ user: user.username });
+  } catch (err) {
+    return res.status(500).json({ message: "Something went wrong." });
+  }
+};
+
+export const logout = (req, res) => {
+  const serialized = serialize("token", "", {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
-    path: "/api/auth/refresh",
-  });
-  res.clearCookie("accessToken", {
-    httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
-    sameSite: "Strict",
+    secure: true,
+    sameSite: "none",
     path: "/",
+    maxAge: 0,
   });
-  res.status(200).json({ message: "Logged out successfully" });
+
+  res.setHeader("Set-Cookie", serialized);
+  return res.status(200).json({ message: "Logged out successfully." });
 };
