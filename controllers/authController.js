@@ -88,7 +88,7 @@ export const me = async (req, res) => {
 };
 
 export const logout = (req, res) => {
-  const serialized = serialize("token", "", {
+  const serialized = serialize("accessToken", "", {
     httpOnly: true,
     secure: true,
     sameSite: "none",
