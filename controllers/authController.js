@@ -20,7 +20,7 @@ export const login = async (req, res) => {
       expiresIn: "7d",
     });
 
-    const cookieStr = serialize("token", token, {
+    const cookieStr = serialize("accessToken", token, {
       httpOnly: true,
       secure: true,
       sameSite: "none",
@@ -37,7 +37,7 @@ export const login = async (req, res) => {
 };
 
 export const register = async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, confirmEmail, password } = req.body;
 
   try {
     const existingUser = await User.findOne({ email });
@@ -59,7 +59,7 @@ export const register = async (req, res) => {
       expiresIn: "7d",
     });
 
-    const cookieStr = serialize("token", token, {
+    const cookieStr = serialize("accessToken", token, {
       httpOnly: true,
       secure: true,
       sameSite: "none",
@@ -77,9 +77,11 @@ export const register = async (req, res) => {
 
 export const me = async (req, res) => {
   try {
-    const user = await User.findById(req.user.userId).select("username");
+    const user = await User.findById(req.user.userId).select("username email");
     if (!user) return res.status(404).json({ message: "User not found." });
-    return res.status(200).json({ user: user.username });
+    return res.status(200).json({
+      user: { username: user.username, email: user.email },
+    });
   } catch (err) {
     return res.status(500).json({ message: "Something went wrong." });
   }

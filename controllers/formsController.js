@@ -42,6 +42,6 @@ export const createCounseling = async (req, res) => {
       .status(201)
       .json({ message: `${type} counseling successfully created.` });
   } catch (err) {
-    res.status(500).json({ message: error.message });
+    return res.status(500).json({ message: error.message });
   }
 };
