@@ -2,13 +2,13 @@ import Counseling from "../models/Counselings.js";
 import Report from "../models/Reports.js";
 
 export const createReport = async (req, res) => {
-  const { contact, description, assistance, schedule_date, schedule_time } =
+  const { contact, description, availability, schedule_date, schedule_time } =
     req.body;
   try {
     const report = await Report.create({
       contact,
       description,
-      assistance,
+      availability,
       schedule_date,
       schedule_time,
     });
@@ -24,7 +24,7 @@ export const createCounseling = async (req, res) => {
     counselor,
     contact,
     description,
-    assistance,
+    availability,
     schedule_date,
     schedule_time,
   } = req.body;
@@ -34,7 +34,7 @@ export const createCounseling = async (req, res) => {
       counselor,
       contact,
       description,
-      assistance,
+      availability,
       schedule_date,
       schedule_time,
     });

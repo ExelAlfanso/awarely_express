@@ -1,10 +1,11 @@
 import express from "express";
 const router = express.Router();
-// import { laporan, ultksp, rekanmelangkah } from "../controllers/formsController.js";
+import {
+  createReport,
+  createCounseling,
+} from "../controllers/formsController.js";
 
-
-// router.post("/laporan",laporan);
-// router.post("/layanan/ultksp",ultksp);
-// router.post("/layanan/rekanmelangkah",rekanmelangkah);
+router.post("/createReport", createReport);
+router.post("/createCounseling", createCounseling);
 
 export default router;

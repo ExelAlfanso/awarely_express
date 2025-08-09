@@ -13,16 +13,21 @@ const reportSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    assistance: {
+    availability: {
       type: Boolean,
       required: true,
     },
-    schedule_date:{
-        type: Date,
+    schedule_date: {
+      type: Date,
+      required: function () {
+        return this.availability;
+      },
     },
     schedule_time: {
       type: String,
-      required: false,
+      required: function () {
+        return this.availability;
+      },
     },
   },
   { timestamps: true }

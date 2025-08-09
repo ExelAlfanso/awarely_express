@@ -3,6 +3,7 @@ import mongoose from "mongoose";
 const counselingSchema = new mongoose.Schema(
   {
     type: {
+      type: String,
       enum: ["ULTKSP", "Rekan Melangkah"],
       required: true,
     },
@@ -22,16 +23,17 @@ const counselingSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
-    assistance: {
+    availability: {
       type: Boolean,
       required: true,
     },
     schedule_date: {
       type: Date,
+      required: true,
     },
     schedule_time: {
       type: String,
-      required: false,
+      required: true,
     },
   },
   { timestamps: true }
